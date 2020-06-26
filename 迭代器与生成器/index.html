@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  
+  <link rel="shortcut icon" href="../img/favicon.ico">
+  <title>01 迭代器与生成器 - Python实践与进阶指南</title>
+  <link href='https://fonts.googleapis.com/css?family=Lato:400,700|Roboto+Slab:400,700|Inconsolata:400,700' rel='stylesheet' type='text/css'>
+
+  <link rel="stylesheet" href="../css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../css/theme_extra.css" type="text/css" />
+  <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/github.min.css">
+  
+  <script>
+    // Current page data
+    var mkdocs_page_name = "01 \u8fed\u4ee3\u5668\u4e0e\u751f\u6210\u5668";
+    var mkdocs_page_input_path = "\u8fed\u4ee3\u5668\u4e0e\u751f\u6210\u5668.md";
+    var mkdocs_page_url = null;
+  </script>
+  
+  <script src="../js/jquery-2.1.1.min.js" defer></script>
+  <script src="../js/modernizr-2.8.3.min.js" defer></script>
+  <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+  <script>hljs.initHighlightingOnLoad();</script> 
+  
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+      <div class="wy-side-nav-search">
+        <a href=".." class="icon icon-home"> Python实践与进阶指南</a>
+        <div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+	<ul class="current">
+	  
+          
+            <li class="toctree-l1">
+		
+    <span class="caption-text">Python实践总结1</span>
+    <ul class="subnav">
+                <li class=" current">
+                    
+    <a class="current" href="./">01 迭代器与生成器</a>
+    <ul class="subnav">
+            
+    <li class="toctree-l3"><a href="#_1">实现可迭代对象与迭代器对象</a></li>
+    
+
+    <li class="toctree-l3"><a href="#_2">使用生成器函数实现可迭代对象</a></li>
+    
+
+    <li class="toctree-l3"><a href="#_3">自己实现反向迭代</a></li>
+    
+
+    </ul>
+                </li>
+    </ul>
+	    </li>
+          
+        </ul>
+      </div>
+      &nbsp;
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" role="navigation" aria-label="top navigation">
+        <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+        <a href="..">Python实践与进阶指南</a>
+      </nav>
+
+      
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="..">Docs</a> &raquo;</li>
+    
+      
+        
+          <li>Python实践总结1 &raquo;</li>
+        
+      
+    
+    <li>01 迭代器与生成器</li>
+    <li class="wy-breadcrumbs-aside">
+      
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main">
+            <div class="section">
+              
+                <h3 id="_1">实现可迭代对象与迭代器对象</h3>
+<p>在写爬虫的时候我们需要将爬取出来的内容先封装到一个对象中，然后再用for语句循环迭代出来数据，而不是将抓取出来的数据一次性的显示，因为这样既浪费存储空间而且由于网络IO处理起来还慢，这时候就需要用到迭代器了。</p>
+<pre><code class="python">from collections import Iterable, Iterator
+import requests
+
+
+class WeatherIterator(Iterator):
+    def __init__(self, caties):
+        self.caties = caties
+        self.index = 0
+
+    def __next__(self):
+        if self.index == len(self.caties):
+            raise StopIteration
+        city = self.caties[self.index]
+        self.index += 1
+        return self.get_weather(city)
+
+    def get_weather(self, city):
+        url = 'http://wthrcdn.etouch.cn/weather_mini?city=' + city
+        r = requests.get(url)
+        data = r.json()['data']['forecast'][0]
+        return city, data['high'], data['low']
+
+
+class WeatherIterable(Iterable):
+    def __init__(self, cities):
+        self.cities = cities
+
+    def __iter__(self):
+        return WeatherIterator(self.cities)
+
+def show(w):
+    for x in w:
+        print(x)
+
+w = WeatherIterable(['北京', '上海', '广州'] * 10)
+show(w)
+</code></pre>
+
+<h3 id="_2">使用生成器函数实现可迭代对象</h3>
+<p>一个模拟案例：实现一个可迭代对象的类，使它能迭代出给定范围内所有的质数。</p>
+<pre><code class="python">from collections import Iterable
+
+class PrimeNumbers(Iterable):
+    def __init__(self, a, b):
+        self.a = a
+        self.b = b
+
+    def __iter__(self):
+        for k in range(self.a, self.b + 1):
+            if self.is_prime(k):
+                yield k
+
+    def is_prime(self, k):
+        return False if k &lt; 2 else all(map(lambda x: k % x, range(2, k)))
+
+pn = PrimeNumbers(1, 30)
+for n in pn:
+    print(n)
+</code></pre>
+
+<h3 id="_3">自己实现反向迭代</h3>
+<p>功能类似于将<code>range</code>的<code>步进值</code>设置为正数时为正向迭代，设置为负数时为反向迭代。</p>
+<pre><code class="python">from decimal import Decimal
+
+class FloatRange:
+    def __init__(self, a, b, step):
+        self.a = Decimal(str(a))
+        self.b = Decimal(str(b))
+        self.step = Decimal(str(step))
+
+    def __iter__(self):
+        t = self.a
+        while t &lt;= self.b:
+            yield float(t)
+            t += self.step
+
+    def __reversed__(self):
+        t = self.b
+        while t &gt;= self.a:
+            yield float(t)
+            t -= self.step
+
+fr = FloatRange(3.0, 4.0, 0.2)
+for x in fr:
+    print(x)
+
+print('-' * 20)
+
+for x in reversed(fr):
+    print(x)
+
+&quot;&quot;&quot;
+4.0
+--------------------
+4.0
+3.8
+3.6
+3.4
+3.2
+3.0
+&quot;&quot;&quot;
+</code></pre>
+              
+            </div>
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+    
+  </div>
+
+  Built with <a href="http://www.mkdocs.org">MkDocs</a> using a <a href="https://github.com/snide/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+      
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" style="cursor: pointer">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+      
+      
+      
+    </span>
+</div>
+    <script>var base_url = '..';</script>
+    <script src="../js/theme.js" defer></script>
+      <script src="../search/main.js" defer></script>
+
+</body>
+</html>
