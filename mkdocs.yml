@@ -1,1 +1,6 @@
-site_name: My Docs
+site_name: Python实践与进阶指南
+theme: readthedocs
+
+nav: 
+  - Python实践总结1:
+    - 01 迭代器与生成器: 迭代器与生成器.md
